@@ -1,0 +1,20 @@
+/* 学员端主题色变量 */
+:root {
+  /* 学科主题色（动态替换） */
+  --subject-color: #409eff;
+
+  /* 学员端主色调 */
+  --app-primary: #667eea;
+  --app-primary-light: #8fa4f0;
+  --app-bg-gradient-start: #667eea;
+  --app-bg-gradient-end: #764ba2;
+
+  /* 练习面板 */
+  --practice-bg: #ffffff;
+  --practice-border: #e4e7ed;
+  --practice-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+
+  /* 错题本 */
+  --wrongbook-error: #f56c6c;
+  --wrongbook-mastered: #67c23a;
+}

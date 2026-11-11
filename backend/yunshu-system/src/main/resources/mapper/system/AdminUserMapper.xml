@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yunshu.system.mapper.AdminUserMapper">
+
+    <!-- 按条件分页查询管理员列表 -->
+    <select id="findList" resultType="com.yunshu.system.domain.AdminUser">
+        SELECT au.id, au.username, au.phone, au.email, au.password_hash AS passwordHash,
+               au.avatar_url AS avatarUrl, au.role_id AS roleId,
+               au.status, au.last_login_at AS lastLoginAt,
+               au.created_at AS createdAt, au.updated_at AS updatedAt,
+               au.is_deleted AS isDeleted,
+               sr.code AS roleCode, sr.name AS roleName
+        FROM admin_user au
+        LEFT JOIN sys_role sr ON au.role_id = sr.id AND sr.is_deleted = 0
+        WHERE au.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND (au.username LIKE CONCAT('%', #{keyword}, '%') OR au.phone LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="roleId != null">AND au.role_id = #{roleId}</if>
+        <if test="status != null">AND au.status = #{status}</if>
+        ORDER BY au.created_at DESC
+    </select>
+
+</mapper>

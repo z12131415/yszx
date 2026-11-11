@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>面试题库管理 - 云枢智学</title>
+  <link rel="stylesheet" href="../css/common.css">
+  <link rel="stylesheet" href="../css/admin.css">
+  <style>
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      width: 220px;
+      padding: 10px 16px;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: #409eff;
+    }
+
+    .filter-select {
+      padding: 10px 36px 10px 16px;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23909399' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      cursor: pointer;
+    }
+
+    .filter-select:disabled {
+      background-color: #f5f7fa;
+      color: #c0c4cc;
+      cursor: not-allowed;
+    }
+
+    /* 主题筛选是自由输入的文本框（不再取词表候选，D4-21） */
+    .filter-topic-input {
+      width: 150px;
+      padding: 10px 16px;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .filter-topic-input:focus {
+      border-color: #409eff;
+    }
+
+    .filter-topic-input:disabled {
+      background-color: #f5f7fa;
+      color: #c0c4cc;
+      cursor: not-allowed;
+    }
+
+    .untagged-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #606266;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .untagged-check input {
+      cursor: pointer;
+    }
+
+    .untagged-check.disabled {
+      color: #c0c4cc;
+      cursor: not-allowed;
+    }
+
+    .untagged-check.disabled input {
+      cursor: not-allowed;
+    }
+
+    /* 卡片本身已有 24px 内边距，这里不再重复内缩，
+       让表格与说明条、分页线一样铺满卡片内容区 */
+    .table-wrapper {
+      overflow-x: auto;
+      padding: 0;
+    }
+
+    /* 表格铺满后，用首尾单元格把 24px 内边距补回来，保证文字与工具条对齐 */
+    .table th:first-child,
+    .table td:first-child {
+      padding-left: 24px;
+    }
+
+    .table th:last-child,
+    .table td:last-child {
+      padding-right: 24px;
+    }
+
+    .table td {
+      vertical-align: top;
+    }
+
+    /* 题目列 */
+    .qb-question {
+      max-width: 460px;
+    }
+
+    .qb-question-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .qb-seq {
+      flex: none;
+      font-size: 12px;
+      color: #909399;
+      font-family: Consolas, Monaco, monospace;
+      padding-top: 2px;
+    }
+
+    .qb-content {
+      font-size: 14px;
+      color: #303133;
+      line-height: 1.6;
+    }
+
+    .qb-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      padding-left: 40px;
+    }
+
+    .qb-tag {
+      font-size: 12px;
+      padding: 1px 8px;
+      border-radius: 4px;
+      background: #f4f4f5;
+      color: #909399;
+      border: 1px solid #e9e9eb;
+    }
+
+    /* 来源列 */
+    .qb-source {
+      font-size: 13px;
+      color: #606266;
+      line-height: 1.6;
+    }
+
+    .qb-source-sub {
+      font-size: 12px;
+      color: #909399;
+      margin-top: 2px;
+    }
+
+    /* 详情弹窗 */
+    .qb-detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .qb-detail-section + .qb-detail-section {
+      margin-top: 20px;
+    }
+
+    .qb-detail-title {
+      font-size: 13px;
+      color: #909399;
+      margin-bottom: 6px;
+    }
+
+    .qb-detail-content {
+      font-size: 14px;
+      color: #303133;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .qb-detail-empty {
+      font-size: 14px;
+      color: #c0c4cc;
+    }
+
+    .qb-edit-tips {
+      margin-top: 4px;
+      padding: 12px 16px;
+      background: #f5f7fa;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #909399;
+      line-height: 1.8;
+    }
+
+    /* 题目来路标记（Excel 导入来的题不带标记，手工录入才打，避免噪声） */
+    .qb-origin {
+      flex: none;
+      font-size: 12px;
+      line-height: 18px;
+      padding: 0 6px;
+      border-radius: 4px;
+      border: 1px solid #e9e9eb;
+      background: #f4f4f5;
+      color: #909399;
+    }
+
+    .qb-origin-manual {
+      border-color: rgba(103, 194, 58, 0.3);
+      background: rgba(103, 194, 58, 0.08);
+      color: #67c23a;
+    }
+
+    /* 录入 / 上传导入弹窗 */
+    .qb-form-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .qb-form-row .form-group {
+      flex: 1;
+    }
+
+    .qb-star {
+      color: #f56c6c;
+    }
+
+    .qb-import-file {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px dashed #dcdfe6;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #606266;
+      background: #fafafa;
+      cursor: pointer;
+    }
+
+    .qb-import-preview {
+      padding: 12px 16px;
+      background: #f5f7fa;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #606266;
+      line-height: 1.9;
+    }
+
+    .qb-import-item {
+      padding-top: 8px;
+      margin-top: 8px;
+      border-top: 1px dashed #e4e7ed;
+    }
+
+    .qb-import-stem {
+      color: #303133;
+      line-height: 1.6;
+    }
+
+    .qb-import-answer {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #909399;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .qb-import-template {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #f0f7ff;
+      border: 1px solid #d6e9ff;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #606266;
+    }
+
+    .qb-import-link {
+      color: #409eff;
+      cursor: pointer;
+      text-decoration: underline;
+      white-space: nowrap;
+    }
+
+    .qb-subject-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .qb-subject-chip {
+      padding: 2px 10px;
+      background: #ecf5ff;
+      border: 1px solid #d9ecff;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #409eff;
+    }
+
+    .qb-import-warn {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #fdf6ec;
+      border: 1px solid #faecd8;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #b88230;
+      line-height: 1.8;
+    }
+
+    .qb-import-table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .qb-import-table th,
+    .qb-import-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e4e7ed;
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .qb-import-table th {
+      color: #909399;
+      font-weight: 500;
+      background: #fafafa;
+    }
+
+    .qb-import-table td.qb-import-row-no {
+      color: #909399;
+      width: 46px;
+      white-space: nowrap;
+    }
+
+    .qb-import-more {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #909399;
+      text-align: center;
+    }
+
+    /* 空态 */
+    .qb-empty {
+      text-align: center;
+      padding: 60px 0 !important;
+      color: #909399;
+      font-size: 14px;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+      padding: 16px 24px;
+      border-top: 1px solid #e4e7ed;
+    }
+
+    .pagination-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 14px;
+      color: #909399;
+    }
+
+    .qb-page-size {
+      padding: 6px 28px 6px 10px;
+      border: 1px solid #dcdfe6;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #606266;
+      background: white;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23909399' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+    }
+
+    .pagination-btns {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .page-btn {
+      min-width: 36px;
+      height: 36px;
+      padding: 0 10px;
+      border: 1px solid #dcdfe6;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: #606266;
+    }
+
+    .page-btn:hover {
+      border-color: #409eff;
+      color: #409eff;
+    }
+
+    .page-btn.active {
+      background: #409eff;
+      border-color: #409eff;
+      color: white;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .search-input { width: 100%; }
+      .filter-topic-input { width: 100%; }
+      .pagination { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <!-- 侧边栏 -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon brand-mark" aria-hidden="true"></span>
+          <span class="logo-text">云枢智学后台</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-group">
+          <div class="nav-group-title">概览</div>
+          <a href="index.html" class="nav-item">
+            <span class="icon">📊</span>
+            <span>数据看板</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">内容管理</div>
+          <a href="subjects.html" class="nav-item">
+            <span class="icon">🎓</span>
+            <span>学科管理</span>
+          </a>
+          <a href="courses.html" class="nav-item">
+            <span class="icon">🎬</span>
+            <span>B站课程库</span>
+          </a>
+          <a href="questions.html" class="nav-item">
+            <span class="icon">📚</span>
+            <span>题库管理</span>
+          </a>
+          <a href="question-bank.html" class="nav-item active">
+            <span class="icon">🗂️</span>
+            <span>面试题库管理</span>
+          </a>
+          <a href="routes.html" class="nav-item">
+            <span class="icon">🗺️</span>
+            <span>学习路线</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">学员管理</div>
+          <a href="students.html" class="nav-item">
+            <span class="icon">🎓</span>
+            <span>学员管理</span>
+          </a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">系统管理</div>
+          <a href="users.html" class="nav-item">
+            <span class="icon">👥</span>
+            <span>用户管理</span>
+          </a>
+          <a href="roles.html" class="nav-item">
+            <span class="icon">🔐</span>
+            <span>角色管理</span>
+          </a>
+          <a href="logs.html" class="nav-item">
+            <span class="icon">📝</span>
+            <span>操作日志</span>
+          </a>
+          <a href="settings.html" class="nav-item">
+            <span class="icon">⚙️</span>
+            <span>系统设置</span>
+          </a>
+        </div>
+      </nav>
+
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="admin-main">
+      <header class="admin-header">
+        <div class="header-left">
+          <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+          <h1 class="page-title">面试题库管理</h1>
+        </div>
+        <div class="header-right">
+          <div class="notification-btn">
+            <span>🔔</span>
+            <span class="notification-badge">3</span>
+          </div>
+          <div class="admin-user-wrap">
+            <div class="admin-user" onclick="toggleAdminDropdown(event)">
+              <div class="user-avatar">A</div>
+              <span>管理员</span>
+              <span class="dropdown-arrow">▾</span>
+            </div>
+            <div class="admin-dropdown" id="adminDropdown">
+              <a href="../portal/index.html" class="admin-dropdown-item">🏠 返回前台</a>
+              <div class="admin-dropdown-divider"></div>
+              <a href="login.html" class="admin-dropdown-item" style="color:#f56c6c;" onclick="return handleLogout()">🚪 退出登录</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="toolbar">
+              <input type="text" class="search-input" id="searchInput" placeholder="搜索题干..." onkeydown="if(event.key==='Enter') applyQuery()">
+              <select class="filter-select" id="filterSubject" onchange="onSubjectChange()">
+                <option value="">全部学科</option>
+              </select>
+              <input type="text" class="filter-topic-input" id="filterTopic" placeholder="主题（模糊匹配）"
+                oninput="onTopicInput()" onkeydown="if(event.key==='Enter') applyQuery()">
+              <select class="filter-select" id="filterDifficulty" onchange="applyQuery()">
+                <option value="">全部难度</option>
+                <option value="1">简单</option>
+                <option value="2">中等</option>
+                <option value="3">困难</option>
+              </select>
+              <label class="untagged-check" id="untaggedWrap">
+                <input type="checkbox" id="filterUntagged" onchange="onUntaggedChange()">
+                <span>只看未分类</span>
+              </label>
+            </div>
+            <div style="display:flex;gap:12px;">
+              <button class="btn btn-primary" onclick="applyQuery()">查询</button>
+              <button class="btn btn-secondary" onclick="resetQuery()">重置</button>
+              <button class="btn btn-secondary" onclick="showImportModal()">📥 导入 Excel</button>
+              <button class="btn btn-primary" onclick="showAddQuestion()">+ 录入题目</button>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>题目</th>
+                  <th style="width:150px;">学科</th>
+                  <th style="width:200px;">来源</th>
+                  <th style="width:80px;">难度</th>
+                  <th style="width:130px;">主题</th>
+                  <th style="width:220px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="questionTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="pagination">
+            <div class="pagination-info">
+              <span>共 <strong id="totalRecords">0</strong> 条记录</span>
+              <select class="qb-page-size" id="pageSizeSelect" onchange="changePageSize(this.value)">
+                <option value="10">10 条/页</option>
+                <option value="20">20 条/页</option>
+                <option value="50">50 条/页</option>
+              </select>
+            </div>
+            <div class="pagination-btns" id="paginationBtns"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script>
+    // ============================
+    // 难度字典（与后端一致：1 简单 / 2 中等 / 3 困难）
+    // ============================
+    const DIFFICULTY_OPTIONS = [
+      { value: 1, label: '简单', cls: 'badge-success' },
+      { value: 2, label: '中等', cls: 'badge-warning' },
+      { value: 3, label: '困难', cls: 'badge-danger' }
+    ];
+
+    // 主题不再有词表候选：录入/编辑手输（D4-20），列表筛选也改成文本框模糊匹配（D4-21）。
+    // MockData.kbTopics（主题词表）在原型里保留但本轮不参与任何渲染 —— 词表与主题维护已搁置。
+
+    // ============================
+    // 状态管理
+    // ============================
+    let query = { keyword: '', subject: '', topic: '', difficulty: '', untagged: false };
+    let currentPage = 1;
+    let pageSize = 10;
+    let filteredData = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initDirectionOptions();
+      applyQuery();
+    });
+
+    // 登录检查
+    if (sessionStorage.getItem('adminLoggedIn') !== 'true') {
+      window.location.href = 'login.html';
+    }
+
+    function handleLogout() {
+      showConfirm('确定要退出管理后台吗？', function() {
+        sessionStorage.removeItem('adminLoggedIn');
+        showToast('已退出登录', 'success');
+        setTimeout(function() { window.location.href = 'login.html'; }, 800);
+      });
+      return false;
+    }
+
+    function toggleSidebar() {
+      document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+    }
+
+    function toggleAdminDropdown(e) {
+      if (e) e.stopPropagation();
+      document.getElementById('adminDropdown').classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+      var dd = document.getElementById('adminDropdown');
+      if (dd && !e.target.closest('.admin-user-wrap')) {
+        dd.classList.remove('show');
+      }
+    });
+
+    // ============================
+    // 筛选项
+    // ============================
+    function initDirectionOptions() {
+      const select = document.getElementById('filterSubject');
+      let html = '<option value="">全部学科</option>';
+      MockData.subjects.forEach(function(s) {
+        html += '<option value="' + s.name + '">' + s.name + '</option>';
+      });
+      select.innerHTML = html;
+    }
+
+    // 主题筛选是文本框，与学科筛选无关（主题不再按学科取词表），切学科不清空已输入的主题
+    function onSubjectChange() {
+      query.subject = document.getElementById('filterSubject').value;
+    }
+
+    // 主题与「只看未分类」互斥：一填主题就取消「只看未分类」并锁住它
+    function onTopicInput() {
+      const typed = document.getElementById('filterTopic').value.trim();
+      if (typed) {
+        query.untagged = false;
+        document.getElementById('filterUntagged').checked = false;
+        setUntaggedUI(false, true);
+      } else {
+        setUntaggedUI(false, false);
+      }
+    }
+
+    function onUntaggedChange() {
+      query.untagged = document.getElementById('filterUntagged').checked;
+      if (query.untagged) {
+        query.topic = '';
+        document.getElementById('filterTopic').value = '';
+        setUntaggedUI(true, false);
+      } else {
+        setUntaggedUI(false, false);
+      }
+    }
+
+    function setUntaggedUI(untagged, disableCheckbox) {
+      const topicInput = document.getElementById('filterTopic');
+      const checkbox = document.getElementById('filterUntagged');
+      const wrap = document.getElementById('untaggedWrap');
+
+      topicInput.disabled = untagged;
+      checkbox.disabled = disableCheckbox;
+      wrap.classList.toggle('disabled', disableCheckbox);
+    }
+
+    function applyQuery() {
+      query.keyword = document.getElementById('searchInput').value.trim();
+      query.subject = document.getElementById('filterSubject').value;
+      query.topic = document.getElementById('filterTopic').value.trim();
+      query.difficulty = document.getElementById('filterDifficulty').value;
+      query.untagged = document.getElementById('filterUntagged').checked;
+
+      filteredData = MockData.kbQuestions.filter(function(q) {
+        if (query.subject && q.subject !== query.subject) return false;
+        if (query.difficulty && String(q.difficulty) !== query.difficulty) return false;
+        if (query.untagged && q.topic) return false;
+        // 主题按文本模糊匹配（对应 A-I01 的 topic 入参），填了就一定不是「只看未分类」
+        if (query.topic && (q.topic || '').indexOf(query.topic) === -1) return false;
+        if (query.keyword && q.content.indexOf(query.keyword) === -1) return false;
+        return true;
+      });
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    function resetQuery() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterSubject').value = '';
+      document.getElementById('filterTopic').value = '';
+      document.getElementById('filterDifficulty').value = '';
+      document.getElementById('filterUntagged').checked = false;
+      setUntaggedUI(false, false);
+
+      query = { keyword: '', subject: '', topic: '', difficulty: '', untagged: false };
+      applyQuery();
+      showToast('已重置筛选条件', 'info');
+    }
+
+    function changePageSize(value) {
+      pageSize = parseInt(value, 10);
+      currentPage = 1;
+      renderTable();
+    }
+
+    // ============================
+    // 列表渲染
+    // ============================
+    function getDifficultyMeta(value) {
+      return DIFFICULTY_OPTIONS.find(function(d) { return d.value === value; }) ||
+        { value: value, label: '未知', cls: 'badge-info' };
+    }
+
+    function getTopicBadge(topic) {
+      if (!topic) return '<span class="badge badge-warning">未分类</span>';
+      return '<span class="badge badge-primary">' + topic + '</span>';
+    }
+
+    /** 题目来路标记：Excel 导入来的题不带标记，手工录入才打，避免噪声 */
+    function getOriginMark(origin) {
+      if (origin === 'manual') return '<span class="qb-origin qb-origin-manual">手工录入</span>';
+      return '';
+    }
+
+    /** 学科列：面试题的归属维度，筛选下拉也是这一列的值 */
+    function renderDirectionCell(q) {
+      return '<div class="qb-source">' + (q.subject || '—') + '</div>';
+    }
+
+    /** 来源列：只讲这道题来自哪份 Excel 文件的第几行；手工录入的没有源文件，如实标出来 */
+    function renderSourceCell(q) {
+      if (q.origin === 'manual') {
+        return '<div class="qb-source">✍️ 手工录入</div>' +
+          '<div class="qb-source-sub">无来源文档</div>';
+      }
+      return '<div class="qb-source">' + (q.docTitle || '—') + '</div>' +
+        '<div class="qb-source-sub">第 ' + q.seq + ' 题</div>';
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('questionTableBody');
+      const total = filteredData.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const start = (currentPage - 1) * pageSize;
+      const pageData = filteredData.slice(start, start + pageSize);
+
+      let html = '';
+      if (pageData.length === 0) {
+        // 两种空态分开：只看未分类时说明「已经标完了」，其余情况说明「没搜到」
+        const emptyText = query.untagged
+          ? '没有未分类的题目 —— 题库里的题都标好主题了'
+          : '没有符合条件的题目';
+        html = '<tr><td class="qb-empty" colspan="6">' + emptyText + '</td></tr>';
+      } else {
+        pageData.forEach(function(q) {
+          const diff = getDifficultyMeta(q.difficulty);
+          const tags = (q.tags || []).map(function(t) {
+            return '<span class="qb-tag">' + t + '</span>';
+          }).join('');
+
+          html += '<tr>' +
+            '<td>' +
+              '<div class="qb-question">' +
+                '<div class="qb-question-head">' +
+                  '<span class="qb-seq">#' + q.id + '</span>' +
+                  getOriginMark(q.origin) +
+                  '<span class="qb-content">' + q.content + '</span>' +
+                '</div>' +
+                (tags ? '<div class="qb-tags">' + tags + '</div>' : '') +
+              '</div>' +
+            '</td>' +
+            '<td>' + renderDirectionCell(q) + '</td>' +
+            '<td>' + renderSourceCell(q) + '</td>' +
+            '<td><span class="badge ' + diff.cls + '">' + diff.label + '</span></td>' +
+            '<td>' + getTopicBadge(q.topic) + '</td>' +
+            '<td>' +
+              '<div class="action-btns">' +
+                '<button class="btn btn-secondary btn-sm" onclick="showDetail(\'' + q.id + '\')">详情</button>' +
+                '<button class="btn btn-secondary btn-sm" onclick="showEdit(\'' + q.id + '\')">编辑</button>' +
+                '<button class="btn btn-secondary btn-sm" style="color:#f56c6c;" onclick="deleteQuestion(\'' + q.id + '\')">删除</button>' +
+              '</div>' +
+            '</td>' +
+          '</tr>';
+        });
+      }
+
+      tbody.innerHTML = html;
+      document.getElementById('totalRecords').textContent = total;
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      const container = document.getElementById('paginationBtns');
+      if (filteredData.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>&#8249;</button>`;
+
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, currentPage + 2);
+
+      if (startPage > 1) {
+        html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+        if (startPage > 2) html += `<button class="page-btn" disabled>...</button>`;
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<button class="page-btn" disabled>...</button>`;
+        html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+      }
+
+      html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>&#8250;</button>`;
+
+      container.innerHTML = html;
+    }
+
+    function goToPage(page) {
+      const totalPages = Math.ceil(filteredData.length / pageSize);
+      if (page < 1 || page > totalPages) return;
+      currentPage = page;
+      renderTable();
+    }
+
+    // ============================
+    // 详情
+    // ============================
+    function findQuestion(id) {
+      return MockData.kbQuestions.find(function(q) { return q.id === id; });
+    }
+
+    /** 参考答案为空时的说法按来路区分，免得把「没填」说成「文档没给」 */
+    function getNoAnswerText(q) {
+      if (q.origin === 'manual') return '（录入时没有填参考答案）';
+      return '（导入时这道题的「参考答案」列是空的）';
+    }
+
+    /** 详情里的来源一行：手工录入的题没有源文档与行号，如实说 */
+    function getSourceText(q) {
+      if (q.origin === 'manual') {
+        return '✍️ 手工录入（无来源文档，也没有源文件行号）';
+      }
+      const linePart = q.sourceRow ? '（Excel 第 ' + q.sourceRow + ' 行）' : '';
+      return (q.subject || '—') + ' / ' + (q.docTitle || '—') +
+        ' 第 ' + q.seq + ' 题' + linePart;
+    }
+
+    function showDetail(id) {
+      const q = findQuestion(id);
+      if (!q) return;
+
+      const diff = getDifficultyMeta(q.difficulty);
+      const tags = (q.tags || []).map(function(t) {
+        return '<span class="qb-tag">' + t + '</span>';
+      }).join('');
+
+      const body =
+        '<div class="qb-detail-meta">' +
+          getTopicBadge(q.topic) +
+          '<span class="badge ' + diff.cls + '">' + diff.label + '</span>' +
+          tags +
+        '</div>' +
+        '<div class="qb-detail-section">' +
+          '<div class="qb-detail-title">题干</div>' +
+          '<div class="qb-detail-content">' + q.content + '</div>' +
+        '</div>' +
+        '<div class="qb-detail-section">' +
+          '<div class="qb-detail-title">参考答案</div>' +
+          (q.referenceAnswer
+            ? '<div class="qb-detail-content">' + q.referenceAnswer + '</div>'
+            : '<div class="qb-detail-empty">' + getNoAnswerText(q) + '</div>') +
+        '</div>' +
+        '<div class="qb-detail-section">' +
+          '<div class="qb-detail-title">来源</div>' +
+          '<div class="qb-detail-content">' + getSourceText(q) + '</div>' +
+        '</div>' +
+        '<div class="qb-detail-section">' +
+          '<div class="qb-detail-title">创建于 ' + q.createdAt + ' · 最近修改于 ' + q.updatedAt + '</div>' +
+        '</div>';
+
+      const footer =
+        '<button class="btn btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">关闭</button>' +
+        '<button class="btn btn-primary" onclick="editFromDetail(\'' + q.id + '\')">编辑</button>';
+
+      showModal('题目详情', body, footer);
+    }
+
+    function editFromDetail(id) {
+      const overlay = document.querySelector('.modal-overlay.active');
+      if (overlay) overlay.remove();
+      showEdit(id);
+    }
+
+    // ============================
+    // 编辑题目（全字段，与录入同构）
+    // ============================
+    function showEdit(id) {
+      const q = findQuestion(id);
+      if (!q) return;
+
+      // 主题是自由输入框：题目原有的主题直接回填，改其他字段不会动它
+      const body =
+        '<div class="form-group">' +
+          '<label class="form-label">所属学科 <span class="qb-star">*</span></label>' +
+          '<select class="form-input" id="editSubject">' +
+            buildSubjectOptions(q.subject) +
+          '</select>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">题干 <span class="qb-star">*</span></label>' +
+          '<textarea class="form-input" id="editContent" rows="3">' + q.content + '</textarea>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">参考答案</label>' +
+          '<textarea class="form-input" id="editReferenceAnswer" rows="4">' + (q.referenceAnswer || '') + '</textarea>' +
+        '</div>' +
+        '<div class="qb-form-row">' +
+          '<div class="form-group">' +
+            '<label class="form-label">主题</label>' +
+            buildTopicInput('editTopic', q.topic) +
+          '</div>' +
+          '<div class="form-group">' +
+            '<label class="form-label">难度</label>' +
+            '<select class="form-input" id="editDifficulty">' + buildDifficultyOptions(q.difficulty) + '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">标签</label>' +
+          '<input type="text" class="form-input" id="editTags" placeholder="多个标签用逗号分隔，可留空" value="' + (q.tags || []).join(',') + '">' +
+        '</div>' +
+        '<div class="qb-edit-tips">' +
+          '主题直接手输，留空即「未分类」，最多 50 字。<br>' +
+          '所有字段都可改，校验与录入一致：学科与题干必填。<br>' +
+          '来源列只讲出处：编辑不会改变来源记录，Excel 来的题仍标原文件与行号，手工录入的仍标「✍️ 手工录入」。' +
+        '</div>';
+
+      const footer =
+        '<button class="btn btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">取消</button>' +
+        '<button class="btn btn-primary" onclick="confirmEdit(\'' + q.id + '\')">保存</button>';
+
+      showModal('编辑题目', body, footer);
+    }
+
+    function confirmEdit(id) {
+      const q = findQuestion(id);
+      if (!q) return;
+
+      const subject = document.getElementById('editSubject').value;
+      const content = document.getElementById('editContent').value.trim();
+      const referenceAnswer = document.getElementById('editReferenceAnswer').value.trim();
+      const topicValue = document.getElementById('editTopic').value.trim();
+      const difficulty = parseInt(document.getElementById('editDifficulty').value, 10);
+      const tags = parseTags(document.getElementById('editTags').value);
+
+      if (!subject) { showToast('请选择所属学科', 'warning'); return; }
+      if (!content) { showToast('题干不能为空', 'warning'); return; }
+      if (topicValue.length > 50) { showToast('主题最多 50 个字符', 'warning'); return; }
+
+      // 全字段覆盖，校验口径与录入（confirmAddQuestion）一致；主题留空即未分类（落库 NULL）
+      q.subject = subject;
+      q.content = content;
+      q.referenceAnswer = referenceAnswer;
+      q.topic = topicValue;
+      q.difficulty = difficulty;
+      q.tags = tags;
+      q.updatedAt = getNow();
+
+      const overlay = document.querySelector('.modal-overlay.active');
+      if (overlay) overlay.remove();
+
+      showToast('保存成功', 'success');
+      applyQuery();
+    }
+
+    function getNow() {
+      const d = new Date();
+      const pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+        ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    // ============================
+    // 录入题目（手工新增一道题）
+    // ============================
+    /** 取号基准：现有题号的最大数字后缀 +1，删过题也不会撞号 */
+    function nextQuestionSeq() {
+      let max = 0;
+      MockData.kbQuestions.forEach(function(q) {
+        const n = parseInt(String(q.id).replace(/\D/g, ''), 10);
+        if (!isNaN(n) && n > max) max = n;
+      });
+      return max + 1;
+    }
+
+    function buildQuestionId(seq) {
+      return 'q' + String(seq).padStart(3, '0');
+    }
+
+    /** 录入单道题时用：取号即用 */
+    function nextQuestionId() {
+      return buildQuestionId(nextQuestionSeq());
+    }
+
+    /** 学科下拉：interview_question.subject_id 是 NOT NULL，录入必须落在某个学科上；编辑时回填当前学科 */
+    function buildSubjectOptions(selected) {
+      let html = '<option value="">请选择学科</option>';
+      MockData.subjects.forEach(function(s) {
+        html += '<option value="' + s.name + '"' + (selected === s.name ? ' selected' : '') + '>' + s.name + '</option>';
+      });
+      return html;
+    }
+
+    /**
+     * 主题输入控件：自由文本，不提供词表候选 —— 主题由录入人手写，与词表是否已有无关。
+     * 留空 = 未分类（落库为 NULL）；主题原样保存，不写词表，也不因词表里没有而拒绝。
+     * 正式实现用 Element Plus el-input（maxlength=50）。
+     */
+    function buildTopicInput(inputId, value) {
+      return '<input type="text" class="form-input" id="' + inputId + '"' +
+          ' maxlength="50" placeholder="留空即未分类；直接输入主题"' +
+          ' value="' + (value || '') + '">';
+    }
+
+    /** 难度下拉：默认中等（与表默认值 2 一致） */
+    function buildDifficultyOptions(selected) {
+      let html = '';
+      DIFFICULTY_OPTIONS.forEach(function(d) {
+        html += '<option value="' + d.value + '"' + (selected === d.value ? ' selected' : '') +
+          '>' + d.label + '</option>';
+      });
+      return html;
+    }
+
+    /** 逗号分隔的标签串转数组，中英文逗号都认 */
+    function parseTags(value) {
+      return value.split(/[,，]/).map(function(t) { return t.trim(); })
+        .filter(function(t) { return t; });
+    }
+
+    function showAddQuestion() {
+      const body =
+        '<div class="form-group">' +
+          '<label class="form-label">所属学科 <span class="qb-star">*</span></label>' +
+          '<select class="form-input" id="addSubject">' +
+            buildSubjectOptions() +
+          '</select>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">题干 <span class="qb-star">*</span></label>' +
+          '<textarea class="form-input" id="addContent" rows="3" placeholder="题干会直接拿去提问与语音播报，别写「1.」这类题号前缀"></textarea>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">参考答案</label>' +
+          '<textarea class="form-input" id="addReferenceAnswer" rows="4" placeholder="参考答案是 AI 判定的唯一依据；可以留空，但留空后这道题的评语只会说「未作答」"></textarea>' +
+        '</div>' +
+        '<div class="qb-form-row">' +
+          '<div class="form-group">' +
+            '<label class="form-label">主题</label>' +
+            buildTopicInput('addTopic', '') +
+          '</div>' +
+          '<div class="form-group">' +
+            '<label class="form-label">难度</label>' +
+            '<select class="form-input" id="addDifficulty">' + buildDifficultyOptions(2) + '</select>' +
+          '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+          '<label class="form-label">标签</label>' +
+          '<input type="text" class="form-input" id="addTags" placeholder="多个标签用逗号分隔，可留空">' +
+        '</div>' +
+        '<div class="qb-edit-tips">' +
+          '手工录入的题没有源文档，列表的来源列会标「✍️ 手工录入」。<br>' +
+          '录进来之后随时可从列表「编辑」修改所有字段；来源列只讲出处，编辑不会改变来路。' +
+        '</div>';
+
+      const footer =
+        '<button class="btn btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">取消</button>' +
+        '<button class="btn btn-primary" onclick="confirmAddQuestion()">保存</button>';
+
+      showModal('录入题目', body, footer);
+    }
+
+    function confirmAddQuestion() {
+      const subject = document.getElementById('addSubject').value;
+      const content = document.getElementById('addContent').value.trim();
+      const referenceAnswer = document.getElementById('addReferenceAnswer').value.trim();
+      const topicValue = document.getElementById('addTopic').value.trim();
+      const difficulty = parseInt(document.getElementById('addDifficulty').value, 10);
+      const tags = parseTags(document.getElementById('addTags').value);
+
+      if (!subject) { showToast('请选择所属学科', 'warning'); return; }
+      if (!content) { showToast('题干不能为空', 'warning'); return; }
+      if (topicValue.length > 50) { showToast('主题最多 50 个字符', 'warning'); return; }
+
+      const now = getNow();
+
+      // 手工录入的题没有源文档：docTitle 留空、seq 记 0，来源列按 origin 如实标「手工录入」
+      MockData.kbQuestions.unshift({
+        id: nextQuestionId(),
+        subject: subject,
+        docTitle: '',
+        seq: 0,
+        content: content,
+        referenceAnswer: referenceAnswer,
+        topic: topicValue,
+        difficulty: difficulty,
+        tags: tags,
+        sourceRow: null,
+        origin: 'manual',
+        createdAt: now,
+        updatedAt: now
+      });
+
+      const overlay = document.querySelector('.modal-overlay.active');
+      if (overlay) overlay.remove();
+
+      showToast('已录入题目，当前共 ' + MockData.kbQuestions.length + ' 道', 'success');
+      applyQuery();
+    }
+
+    // ============================
+    // 导入 Excel 入库（题库来源之一）
+    // ============================
+    // 原型没有 Excel 解析能力：选完文件后按内置样例模拟服务端 A-I07 的解析与校验结果，
+    // 真实实现是上传后由服务端解析校验、回预览数据，再由 A-I08 凭 token 确认入库
+    let importState = { fileName: '', fileSize: 0, rows: [] };
+
+    const EXCEL_IMPORT_COLUMN_TEXT = '所属学科、题干、难度、主题、标签、参考答案';
+
+    /** 第一段：下载模板 + 选 .xlsx/.xls 文件（学科不在弹窗里选，以文件里的「所属学科」列为准） */
+    function showImportModal() {
+      importState = { fileName: '', fileSize: 0, rows: [] };
+
+      const body =
+        '<div class="qb-import-template">' +
+          '<span>按模板整理题目，表头 6 列：' + EXCEL_IMPORT_COLUMN_TEXT + '，列顺序可以调。</span>' +
+          '<span class="qb-import-link" onclick="downloadImportTemplate()">⬇ 下载导入模板</span>' +
+        '</div>' +
+        '<div class="form-group" style="margin-top:16px;">' +
+          '<label class="form-label">Excel 题库文件 <span class="qb-star">*</span></label>' +
+          '<input type="file" class="qb-import-file" id="importFile" accept=".xlsx,.xls" onchange="onImportFileChange(this)">' +
+        '</div>' +
+        '<div class="qb-edit-tips">' +
+          '一行一道题。必填只有「所属学科」和「题干」：难度留空按中等入库，主题留空进「未分类」，标签与参考答案都可以空着。<br>' +
+          '「所属学科」按学科名匹配，一份文件可以填不同学科，导入后各归各的学科，所以这里不再选学科。<br>' +
+          '学科名在系统里找不到，整份文件会被拒绝；难度留空只提醒，按「中等」入库。<br>' +
+          '支持 <strong>.xlsx / .xls</strong>，单个文件不超过 5MB、最多 500 行，只读第一个工作表，表头按列名识别。<br>' +
+          '上传的文件系统不留存，入库之后只保留文件名与所在行号。' +
+        '</div>';
+
+      const footer =
+        '<button class="btn btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">取消</button>' +
+        '<button class="btn btn-primary" onclick="toImportPreview()">解析预览</button>';
+
+      showModal('导入 Excel 题目', body, footer);
+    }
+
+    function downloadImportTemplate() {
+      showToast('原型演示：真实实现由 A-I15 返回 xlsx 模板（6 列表头 + 1 行示例）', 'success');
+    }
+
+    function onImportFileChange(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      if (!/\.(xlsx|xls)$/i.test(file.name)) {
+        input.value = '';
+        showToast('只支持 Excel（.xlsx / .xls）文件', 'warning');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        input.value = '';
+        showToast('文件超过 5MB，请拆分后再导入', 'warning');
+        return;
+      }
+
+      importState.fileName = file.name;
+      importState.fileSize = file.size;
+      importState.rows = buildMockExcelRows();
+
+      const summary = collectSubjectSummary(importState.rows);
+      showToast('已解析出 ' + importState.rows.length + ' 道题，涉及 ' + summary.length + ' 个学科', 'success');
+    }
+
+    /**
+     * 模拟的服务端解析结果（原型用）
+     * 故意留了一处告警用于演示「告警行照常入库」：第 6 行难度留空
+     */
+    function buildMockExcelRows() {
+      const answers = {
+        attention: '缩放因子 √d_k 让点积的方差回到 1 左右，避免 softmax 进入梯度极小的饱和区；不缩放时维度越大点积越分散，梯度越难传递。',
+        lora: '只训练低秩旁路矩阵 A、B，原模型权重冻结，可训练参数与显存占用大幅下降，同时便于多任务热插拔。',
+        rerank: '召回阶段受限于向量近似的效率与粗粒度语义，重排用交叉编码器对候选做逐条精排，把真正相关的几条顶到前面。',
+        agent: '给调用链路设最大跳数、限制可调用的下游工具、用显式状态机而不是自由对话推进流程，并记录会话内的调用栈做环路检测。',
+        vector: '主要看召回率与延迟、索引构建成本、过滤与混合检索能力、横向扩展与运维成本，以及和现有数据规模的匹配度。'
+      };
+
+      return [
+        {
+          row: 2, subjectName: 'AI大模型开发',
+          content: 'Transformer 里自注意力为什么一定要除以 √d_k？',
+          difficultyRaw: '中等', topic: '大模型基础', tags: '注意力机制,Transformer', referenceAnswer: answers.attention
+        },
+        {
+          row: 3, subjectName: 'AI大模型开发',
+          content: 'LoRA 微调相比全量微调省在哪里？',
+          difficultyRaw: '困难', topic: '模型微调', tags: '微调,显存', referenceAnswer: answers.lora
+        },
+        {
+          row: 4, subjectName: 'AI应用与智能体开发',
+          content: 'RAG 检索链路里为什么还要加一层重排（Rerank）？',
+          difficultyRaw: '中等', topic: 'RAG检索增强', tags: 'RAG,重排', referenceAnswer: answers.rerank
+        },
+        {
+          row: 5, subjectName: 'AI应用与智能体开发',
+          content: '多智能体协作时怎么避免互相调用绕成死循环？',
+          difficultyRaw: '简单', topic: 'Agent协作', tags: 'Agent,多智能体', referenceAnswer: answers.agent
+        },
+        {
+          row: 6, subjectName: 'AI应用与智能体开发',
+          content: '向量数据库选型主要看哪几个指标？',
+          difficultyRaw: '', topic: '向量数据库', tags: '向量库,选型', referenceAnswer: ''
+        }
+      ];
+    }
+
+    /** 难度列容错：文字或 1/2/3 都认，认不出来或留空按中等（默认值 2） */
+    function mapDifficultyText(text) {
+      const map = { '简单': 1, '易': 1, '中等': 2, '中': 2, '困难': 3, '难': 3, '1': 1, '2': 2, '3': 3 };
+      return map[String(text || '').trim()] || 2;
+    }
+
+    /** 涉及学科汇总：一份文件可以跨学科，预览页按学科给出题数 */
+    function collectSubjectSummary(rows) {
+      const summary = [];
+      rows.forEach(function(item) {
+        const hit = summary.find(function(s) { return s.subjectName === item.subjectName; });
+        if (hit) hit.count += 1;
+        else summary.push({ subjectName: item.subjectName, count: 1 });
+      });
+      return summary;
+    }
+
+    /** 告警行不拦导入：目前只有「难度留空」一种（主题不再校验词表，D4-20/D4-21） */
+    function collectImportWarnings(rows) {
+      const warnings = [];
+
+      rows.forEach(function(item) {
+        if (!String(item.difficultyRaw || '').trim()) {
+          warnings.push({ row: item.row, reason: '难度留空，按「中等」入库' });
+        }
+      });
+      return warnings;
+    }
+
+    function toImportPreview() {
+      if (!importState.fileName) { showToast('请先选择 Excel 文件', 'warning'); return; }
+      if (importState.rows.length === 0) {
+        showToast('这个文件里没读到题目 —— 第一张工作表的第一行要是表头，且至少有「所属学科」「题干」两列', 'warning');
+        return;
+      }
+      if (importState.rows.length > 500) {
+        showToast('单次最多导入 500 道题，这个文件有 ' + importState.rows.length + ' 行', 'warning');
+        return;
+      }
+
+      renderImportPreview();
+    }
+
+    /** 第二段：预览解析结果（涉及学科、告警、逐行明细），不再整份统一标注主题/难度/标签 */
+    function renderImportPreview() {
+      const rows = importState.rows;
+      const summary = collectSubjectSummary(rows);
+      const warnings = collectImportWarnings(rows);
+
+      const chips = summary.map(function(s) {
+        return '<span class="qb-subject-chip">' + s.subjectName + ' · ' + s.count + ' 道</span>';
+      }).join('');
+
+      const warnHtml = warnings.length
+        ? '<div class="qb-import-warn">' +
+            '<strong>有 ' + warnings.length + ' 条提醒</strong>（不影响导入，这些行照常入库）：<br>' +
+            warnings.map(function(w) { return '第 ' + w.row + ' 行：' + w.reason; }).join('<br>') +
+          '</div>'
+        : '';
+
+      const tableRows = rows.map(function(item) {
+        const diff = getDifficultyMeta(mapDifficultyText(item.difficultyRaw));
+        const diffText = diff.label + (String(item.difficultyRaw || '').trim() ? '' : '（留空取默认）');
+        return '<tr>' +
+          '<td class="qb-import-row-no">' + item.row + '</td>' +
+          '<td>' + item.subjectName + '</td>' +
+          '<td>' + item.content + '</td>' +
+          '<td>' + diffText + '</td>' +
+          '<td>' + (item.topic || '未分类') + '</td>' +
+          '<td>' + (item.tags || '—') + '</td>' +
+        '</tr>';
+      }).join('');
+
+      const body =
+        '<div class="qb-import-preview">' +
+          '<div>文件：<strong>' + importState.fileName + '</strong>（' + formatFileSize(importState.fileSize) + '）</div>' +
+          '<div>共 <strong>' + rows.length + '</strong> 道题，涉及 <strong>' + summary.length + '</strong> 个学科：</div>' +
+          '<div class="qb-subject-chips">' + chips + '</div>' +
+          '<div style="margin-top:6px;font-size:12px;color:#909399;">原型演示：下面是内置样例的解析结果，真实实现由服务端解析上传的 Excel 后返回。</div>' +
+        '</div>' +
+        warnHtml +
+        '<div style="max-height:220px;overflow:auto;margin-top:10px;">' +
+          '<table class="qb-import-table">' +
+            '<thead>' +
+              '<tr><th>行号</th><th>所属学科</th><th>题干</th><th>难度</th><th>主题</th><th>标签</th></tr>' +
+            '</thead>' +
+            '<tbody>' + tableRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div class="qb-edit-tips">' +
+          '主题、难度、标签逐行按文件里的值入库，不再整份统一指定；导入后仍可以在列表里逐题改主题与难度。<br>' +
+          '这 ' + rows.length + ' 道题会直接入库，来源只记文件名「' + importState.fileName + '」与所在行号。<br>' +
+          '只要有一行校验不通过（比如学科名对不上），整份文件都不会入库，改好再传一次即可。' +
+        '</div>';
+
+      const footer =
+        '<button class="btn btn-secondary" onclick="this.closest(\'.modal-overlay\').remove()">取消</button>' +
+        '<button class="btn btn-primary" onclick="confirmImport()">开始导入</button>';
+
+      const overlay = document.querySelector('.modal-overlay.active');
+      if (overlay) overlay.remove();
+      showModal('导入 Excel 题目 · 解析预览', body, footer);
+    }
+
+    function confirmImport() {
+      const now = getNow();
+      const fileName = importState.fileName;
+
+      // 逐行落库：学科取文件里的「所属学科」，主题/难度/标签取本行的值
+      // 一次要 N 个题号：先把基准取出来自己往上加，别在 map 里反复读数组（这时新题还没插进去）
+      const startSeq = nextQuestionSeq();
+
+      const newQuestions = importState.rows.map(function(item, index) {
+        return {
+          id: buildQuestionId(startSeq + index),
+          subject: item.subjectName,
+          docTitle: fileName,
+          seq: index + 1,
+          content: item.content,
+          referenceAnswer: item.referenceAnswer || '',
+          topic: item.topic || '',
+          difficulty: mapDifficultyText(item.difficultyRaw),
+          tags: parseTags(item.tags || ''),
+          sourceRow: item.row,
+          createdAt: now,
+          updatedAt: now
+        };
+      });
+
+      // 整批插到最前面，文件内的题目顺序保持不变
+      MockData.kbQuestions.unshift.apply(MockData.kbQuestions, newQuestions);
+
+      const overlay = document.querySelector('.modal-overlay.active');
+      if (overlay) overlay.remove();
+
+      showToast('导入成功，共 ' + newQuestions.length + ' 道题', 'success');
+      applyQuery();
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return '0KB';
+      if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + 'KB';
+      return (bytes / 1024 / 1024).toFixed(1) + 'MB';
+    }
+
+    // ============================
+    // 删除（逻辑删除）
+    // ============================
+    function deleteQuestion(id) {
+      const q = findQuestion(id);
+      if (!q) return;
+
+      showConfirm(getDeleteTip(q), function() {
+        const idx = MockData.kbQuestions.findIndex(function(item) { return item.id === id; });
+        if (idx !== -1) MockData.kbQuestions.splice(idx, 1);
+
+        showToast('删除成功', 'success');
+        applyQuery();
+      });
+    }
+
+    /** 删除提示按来路区分：导入的 Excel 系统不留存，两种来路删了都只能靠自己再补一遍 */
+    function getDeleteTip(q) {
+      if (q.origin === 'manual') {
+        return '确定要删除这道题吗？这是手工录入的题，系统里没有源文档，删掉就找不回来了。';
+      }
+      return '确定要删除这道题吗？导入的 Excel 文件系统不留存，删掉之后没法按原表回滚，只能再整理一次重新导入。';
+    }
+  </script>
+</body>
+</html>

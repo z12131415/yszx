@@ -1,0 +1,26 @@
+# Maven
+backend/target/
+backend/**/*.class
+backend/**/*.jar
+backend/*.log
+
+# Node
+frontend/*/node_modules/
+frontend/*/dist/
+frontend/*/package-lock.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+uploads/
+*.log
